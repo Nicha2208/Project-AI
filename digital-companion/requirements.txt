@@ -1,0 +1,9 @@
+# ติดตั้งทั้งหมดด้วยคำสั่ง: pip install -r requirements.txt
+
+fastapi==0.115.0        # Web framework สำหรับสร้าง API
+uvicorn==0.30.6         # Server สำหรับรัน FastAPI
+anthropic==0.34.0       # ใช้ Claude AI API
+python-dotenv==1.0.1    # อ่านค่าจากไฟล์ .env
+pydantic==2.8.2         # ตรวจสอบรูปแบบข้อมูล
+httpx==0.27.2           # HTTP client สำหรับเรียก API ภายนอก
+google-generativeai==0.8.3  # ใช้ Google Generative AI API (Gemini)
