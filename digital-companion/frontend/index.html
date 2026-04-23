@@ -10,55 +10,202 @@
   </head>
 <body>
 
-<!doctype html>
-<html lang="th">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>BAB — Digital Companion</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="styles.css">
-  </head>
 
-  <body>
-    <main class="center-wrap" role="main">
-      <header class="brand">
-        <h1 class="logo">BAB🌿</h1>
-        <p class="tagline">Digital Companion • พร้อมรับฟังเสมอ</p>
-      </header>
+<header>
+  <div class="avatar-wrap">
+    <div class="avatar">🌿</div>
+    <div class="status-dot"></div>
+  </div>
+  <div class="header-info">
+    <h1>BAB</h1>
+    <p>Digital Companion · พร้อมรับฟังเสมอ</p>
+  </div>
+</header>
 
-      <form class="search-form" onsubmit="return false;" aria-label="ส่งข้อความถึง BAB">
-        <label for="q" class="visually-hidden">ข้อความ</label>
-        <div class="search-inner">
-          <span class="icon" aria-hidden>💬</span>
-          <input id="q" name="q" type="search" placeholder="พิมพ์สิ่งที่คุณต้องการพูดกับ BAB..." autocomplete="off">
-         <button type="submit" class="search-submit">
-          <span class="search-icon">🔍 ค้าหา</span>
-         </button>
-        </div>
-      </form>
 
-      <div class="quick-actions" role="list">
-        <button class="pill" type="button">เครียดเรื่องเรียน</button>
-        <button class="pill" type="button">นอนไม่หลับ</button>
-        <button class="pill" type="button">อยากระบาย</button>
-        <button class="pill" type="button">ผ่อนคลาย</button>
+
+<div id="chat-area">
+
+  <!-- การ์ดต้อนรับ (แสดงครั้งแรก) -->
+  <div class="welcome-card">
+    <div class="emoji">🌸</div>
+    <h2>สวัสดี! ฉันชื่อ BAB</h2>
+    <p>ฉันอยู่ที่นี่เพื่อรับฟังและช่วยให้คุณผ่อนคลาย<br>
+       วันนี้เป็นยังไงบ้าง? ลองเล่าให้ฟังสิ </p>
+  </div>
+
+  <!-- แบนเนอร์วิกฤต (ซ่อนอยู่ แสดงเมื่อตรวจพบความเสี่ยง) -->
+  <div class="crisis-banner" id="crisis-banner">
+     <strong>ฉันเป็นห่วงคุณมาก</strong><br>
+  </div>
+
+</div>
+
+
+<!-- ===== แถบพิมพ์ข้อความ ===== -->
+<footer>
+  <!-- ปุ่มลัด -->
+  <div class="quick-replies">
+    <button class="quick-btn" onclick="quickSend('เครียดเรื่องเรียน/งานมาก')"><i class="bi bi-emoji-expressionless"></i> เครียดเรื่องเรียน</button>
+    <button class="quick-btn" onclick="quickSend('นอนไม่หลับ')"><i class="bi bi-moon"></i> นอนไม่หลับ</button>
+    <button class="quick-btn" onclick="quickSend('อยากระบาย')"><i class="bi bi-chat-dots"></i> อยากระบาย</button>
+    <button class="quick-btn" onclick="quickSend('แนะนำกิจกรรมผ่อนคลายหน่อย')"><i class="bi bi-emoji-smile"></i> ผ่อนคลาย</button>
+  </div>
+
+  <!-- กล่องพิมพ์ + ปุ่มส่ง -->
+  <div class="input-row">
+    <textarea
+      id="msg-input"
+      rows="1"
+      placeholder="พิมพ์ที่นี่... BABพร้อมฟังนะ"
+      maxlength="500">
+    </textarea>
+    <button id="send-btn" onclick="sendMessage()" title="ส่ง"><i class="bi bi-send-fill"></i></button>
+  </div>
+</footer>
+
+
+<script>
+  // ===== ตัวแปรหลัก =====
+  const chatArea  = document.getElementById('chat-area');
+  const input     = document.getElementById('msg-input');
+  const sendBtn   = document.getElementById('send-btn');
+  const crisisBanner = document.getElementById('crisis-banner');
+
+  let history = []; // เก็บประวัติบทสนทนาทั้งหมด
+
+
+  //  Auto-resize กล่องพิมพ์
+  input.addEventListener('input', () => {
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  });
+
+  // Enter = ส่ง, Shift+Enter = ขึ้นบรรทัดใหม่
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+
+  // ===== แสดงเวลาปัจจุบัน =====
+  function getTime() {
+    return new Date().toLocaleTimeString('th-TH', {
+      hour: '2-digit', minute: '2-digit'
+    });
+  }
+
+
+  // ===== เพิ่มฟองข้อความ =====
+  // role = "mali" หรือ "user"
+  function addMessage(role, text) {
+    const div = document.createElement('div');
+    div.className = `msg ${role}`;
+
+    const emoji = role === 'bab' ? '🌿' : '😊';
+
+    div.innerHTML = `
+      <div class="msg-avatar">${emoji}</div>
+      <div>
+        <div class="bubble">${text.replace(/\n/g, '<br>')}</div>
+        <span class="bubble-time">${getTime()}</span>
       </div>
+    `;
 
-      <p class="help-note">BAB เป็นพื้นที่ปลอดภัยสำหรับการระบายและรับฟัง — ไม่มีการตัดสิน</p>
-    </main>
+    chatArea.appendChild(div);
+    chatArea.scrollTop = chatArea.scrollHeight; // เลื่อนลงล่างสุด
+  }
 
-    <script>
-      // Quick action fills the search input
-      const input = document.getElementById('q');
-      document.querySelectorAll('.quick-actions .pill').forEach(btn => {
-        btn.addEventListener('click', () => {
-          input.value = btn.textContent.trim();
-          input.focus();
-        });
+
+  // ===== แสดง Loading dots =====
+  function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'msg mali';
+    div.id = 'typing-indicator';
+    div.innerHTML = `
+      <div class="msg-avatar">🌿</div>
+      <div class="bubble typing-bubble">
+        <span></span><span></span><span></span>
+      </div>
+    `;
+    chatArea.appendChild(div);
+    chatArea.scrollTop = chatArea.scrollHeight;
+  }
+
+  function hideTyping() {
+    const t = document.getElementById('typing-indicator');
+    if (t) t.remove();
+  }
+
+
+
+  // ฟังก์ชันส่งข้อความหลัก 
+  async function sendMessage(overrideText = null) {
+    const msg = overrideText ?? input.value.trim();
+    if (!msg) return; // ไม่ส่งถ้าว่าง
+
+    // เคลียร์กล่องพิมพ์
+    input.value = '';
+    input.style.height = 'auto';
+    sendBtn.disabled = true; // ป้องกันการส่งซ้ำ
+
+    // แสดงข้อความของ User
+    addMessage('user', msg);
+
+    // เพิ่มเข้า history
+    history.push({ role: 'user', content: msg });
+
+    // แสดง loading
+    showTyping();
+
+    try {
+      // เรียก API 
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: msg,
+          history: history.slice(-10) // ส่งแค่ 10 ข้อความล่าสุด
+        })
       });
-    </script>
-  </body>
+
+      const data = await response.json();
+      hideTyping();
+
+      if (response.ok) {
+        // แสดงคำตอบ
+        addMessage('bab', data.reply);
+
+        // เพิ่มคำตอบเข้า history
+        history.push({ role: 'assistant', content: data.reply });
+
+      } else {
+        // แสดง error
+        addMessage('mali', ' เกิดข้อผิดพลาด: ' + (data.detail || 'กรุณาลองใหม่'));
+      }
+
+    } catch (err) {
+      // ถ้าเชื่อมต่อไม่ได้
+      hideTyping();
+      addMessage('mali', ' เชื่อมต่อ server ไม่ได้ กรุณาตรวจสอบว่ารัน python app.py แล้ว');
+    }
+
+    // คืนปุ่มส่ง
+    sendBtn.disabled = false;
+    input.focus();
+  }
+
+
+  //  ปุ่มลัด
+  function quickSend(text) {
+    sendMessage(text);
+  }
+
+
+  // โฟกัสกล่องพิมพ์ตอนโหลด
+  input.focus();
+</script>
+</body>
 </html>
