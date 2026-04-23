@@ -146,6 +146,14 @@ header {
   background: var(--teal);
   color: white;
   border-top-right-radius: 4px;
+   display: inline-block;
+   white-space: normal;
+   width: fit-content;
+   max-width: 80%;
+   word-break: break-word;
+   min-width: 120px;
+   word-break: keep-all;
+   white-space: normal;
 }
 
 .bubble-time {

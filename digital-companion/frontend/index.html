@@ -44,13 +44,13 @@
 
 <!-- ===== แถบพิมพ์ข้อความ ===== -->
 <footer>
-  <!-- ปุ่มลัด -->
+  <!-- ปุ่มลัด
   <div class="quick-replies">
     <button class="quick-btn" onclick="quickSend('เครียดเรื่องเรียน/งานมาก')"><i class="bi bi-emoji-expressionless"></i> เครียดเรื่องเรียน</button>
     <button class="quick-btn" onclick="quickSend('นอนไม่หลับ')"><i class="bi bi-moon"></i> นอนไม่หลับ</button>
     <button class="quick-btn" onclick="quickSend('อยากระบาย')"><i class="bi bi-chat-dots"></i> อยากระบาย</button>
     <button class="quick-btn" onclick="quickSend('แนะนำกิจกรรมผ่อนคลายหน่อย')"><i class="bi bi-emoji-smile"></i> ผ่อนคลาย</button>
-  </div>
+  </div> -->
 
   <!-- กล่องพิมพ์ + ปุ่มส่ง -->
   <div class="input-row">
@@ -106,10 +106,12 @@
 
     const emoji = role === 'bab' ? '🌿' : '😊';
 
+    // ลบ \n และ \r ออกจากข้อความเพื่อป้องกันแนวตั้ง
+    const flatText = text.replace(/[\n\r]/g, '');
     div.innerHTML = `
       <div class="msg-avatar">${emoji}</div>
       <div>
-        <div class="bubble">${text.replace(/\n/g, '<br>')}</div>
+        <div class="bubble">${flatText}</div>
         <span class="bubble-time">${getTime()}</span>
       </div>
     `;
@@ -122,7 +124,7 @@
   // ===== แสดง Loading dots =====
   function showTyping() {
     const div = document.createElement('div');
-    div.className = 'msg mali';
+    div.className = 'msg bab';
     div.id = 'typing-indicator';
     div.innerHTML = `
       <div class="msg-avatar">🌿</div>
@@ -175,21 +177,18 @@
       hideTyping();
 
       if (response.ok) {
-        // แสดงคำตอบ
-        addMessage('bab', data.reply);
-
-        // เพิ่มคำตอบเข้า history
-        history.push({ role: 'assistant', content: data.reply });
-
+        // ลบ \n และ \r ออกจากข้อความ bab
+        const reply = data.reply.replace(/[\n\r]/g, '');
+        addMessage('bab', reply);
       } else {
         // แสดง error
-        addMessage('mali', ' เกิดข้อผิดพลาด: ' + (data.detail || 'กรุณาลองใหม่'));
+        addMessage('bab', ' เกิดข้อผิดพลาด: ' + (data.detail || 'กรุณาลองใหม่'));
       }
 
     } catch (err) {
       // ถ้าเชื่อมต่อไม่ได้
       hideTyping();
-      addMessage('mali', ' เชื่อมต่อ server ไม่ได้ กรุณาตรวจสอบว่ารัน python app.py แล้ว');
+      addMessage('bab', ' เชื่อมต่อ server ไม่ได้ กรุณาตรวจสอบว่ารัน python app.py แล้ว');
     }
 
     // คืนปุ่มส่ง
