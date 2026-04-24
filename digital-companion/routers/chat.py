@@ -6,7 +6,7 @@ import os
 import re
 from models.rag_engine import get_rag_engine
 import random
-from models.mcp_client import log_mood, get_relaxation_tip
+from models.mcp_client import log_mood, get_relaxation_tip, search_online_tips, get_crisis_info
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -185,15 +185,26 @@ async def chat(request: ChatRequest):
         # 2. ตรวจสอบประโยคตอบรับ/เข้าใจ (Acknowledgment) ก่อนเลย เพื่อให้ได้คำตอบที่แน่นอน
         ack_phrases = ["โอเคคับ", "โอเคค่ะ", "โอเค", "เคคับ", "เคค่ะ", "เข้าใจแล้ว", "เข้าใจคับ", "เข้าใจแล้วคับ"]
         thank_phrases = ["ขอบคุณนะ", "ขอบคุณ", "ขอบใจนะ", "ขอบใจมาก", "ขอบคุณที่รับฟัง", "ขอบใจ", "ซาบซึ้ง", "ซึ้งใจ"]
+        better_phrases = ["ดีขึ้นแล้ว", "ดีขึ้น", "รู้สึกดีขึ้น", "โอเคขึ้น", "สบายใจขึ้น", "ค่อยยังชั่ว"]
+        
         msg_strip = request.message.strip().lower()
+        
         if any(phrase == msg_strip for phrase in ack_phrases):
             return ChatResponse(reply="โอเคคับ ถ้ามีอะไรให้ช่วยรึอยากเล่าอะไรก็บอกมาได้เลยคับ Bab พร้อมรับฟังคุณตรงนี้เสมอนะ")
+            
         if any(phrase in msg_strip for phrase in thank_phrases):
             return ChatResponse(reply=random.choice([
                 "ด้วยความยินดีคับ มีอะไรให้ช่วยรึอยากเล่าก็บอกมาได้เลยนะคับ Bab อยู่ตรงนี้เสมอนะ",
                 "ได้เสมอเลยคับ มีอะไรให้ช่วยรึอยากเล่าก็บอกมาได้เลยนะคับ Bab อยู่ตรงนี้เสมอนะ",
                 "ดีใจที่คุณโอเคขึ้นนะคับ มีอะไรให้ช่วยรึอยากเล่าก็บอกมาได้เลยนะคับ Bab อยู่ตรงนี้เสมอนะ",
                 "ขอบคุณที่ให้ผมรับฟัง และช่วยเหลือคุณกับเรื่องที่คุณเจอมานะคับ มีอะไรให้ช่วยรึอยากเล่าก็บอกมาได้เลยนะคับ Bab อยู่ตรงนี้เสมอนะ"
+            ]))
+            
+        if any(phrase in msg_strip for phrase in better_phrases):
+            return ChatResponse(reply=random.choice([
+                "ดีใจที่คุณรู้สึกดีขึ้นนะคับ หากเครียดหรืออยากให้ช่วยอะไรก็บอกมาได้ตลอดเลยนะคับ Bab พร้อมรับฟังเสมอคับ 😊",
+                "ยินดีด้วยที่คุณสบายใจขึ้นนะคับ วันนี้เก่งมากเลยที่ผ่านมันมาได้ ถ้ามีเรื่องอะไรอีกก็แวะมาคุยกันได้ตลอดเลยนะคับ",
+                "เห็นคุณรู้สึกดีขึ้น Bab ก็ดีใจด้วยนะคับ ไปพักผ่อนทำสิ่งที่ชอบได้เลยนะ ถ้ามีอะไรให้ช่วยอีกก็ทักมาได้เสมอคับ"
             ]))
 
         # Demo mode
@@ -253,10 +264,32 @@ async def chat(request: ChatRequest):
             if has_non_thai(reply):
                 reply = clean_non_thai(reply)
 
-        # 3. เสริมการตอบโต้อย่างชาญฉลาดด้วย MCP: ถ้า User บ่นว่าเครียด ให้ดึง Tip มาต่อท้าย
-        if any(w in request.message.lower() for w in ["เครียด", "เหนื่อย", "ท้อ", "ไม่ไหว"]):
-            tip = await get_relaxation_tip("high")
-            reply += f"\n\n💡 BAB มีเคล็ดลับมาฝากนะคับ: {tip}"
+        # 3. เสริมการตอบโต้อย่างชาญฉลาดด้วย MCP
+        msg_lower = request.message.lower()
+        
+        # 3.1 ตรวจสอบคำสุ่มเสี่ยงฉุกเฉิน (Crisis Detection) ก่อนเลย
+        crisis_keywords = ["ตาย", "ไม่อยากอยู่", "ฆ่าตัว", "ทำร้ายตัวเอง", "ไม่มีค่า", "จบชีวิต"]
+        if any(w in msg_lower for w in crisis_keywords):
+            crisis_data = await get_crisis_info()
+            reply += f"\n\n🚨 {crisis_data.get('message', 'คุณไม่ได้อยู่คนเดียวนะคับ มีคนพร้อมช่วยเหลือเสมอ')}\n"
+            if "hotlines" in crisis_data:
+                for line in crisis_data["hotlines"]:
+                    reply += f"- {line['name']}: {line['number']} ({line['hours']})\n"
+                    
+        # 3.2 ถ้าไม่ฉุกเฉิน แต่บ่นเครียด ให้ดึง Tip หรือเซิร์ชหาข้อมูล
+        elif any(w in msg_lower for w in ["เครียด", "เหนื่อย", "ท้อ", "ไม่ไหว"]):
+            # ลองหาจากอินเทอร์เน็ตก่อน (Real-time)
+            search_res = await search_online_tips(request.message)
+            
+            if "answer" in search_res and search_res["answer"] != "ขออภัย ไม่พบคำตอบที่สรุปได้ชัดเจน":
+                tip = search_res["answer"]
+                source_info = f"\n(ข้อมูลจากอินเทอร์เน็ต: {search_res['sources'][0] if search_res['sources'] else 'หลายแหล่ง'})"
+            else:
+                # ถ้าหาออนไลน์ไม่เจอ หรือไม่มี API Key ให้ใช้ Static Tips ที่เราเตรียมไว้
+                tip = await get_relaxation_tip("high")
+                source_info = ""
+                
+            reply += f"\n\n💡 BAB ไปหาข้อมูลมาฝากนะคับ: {tip}{source_info}"
 
         return ChatResponse(reply=reply)
 

@@ -62,6 +62,11 @@ async def log_mood(mood: str, note: str = "") -> bool:
     return result.get("status") == "success"
 
 
+async def search_online_tips(query: str) -> dict:
+    """ค้นหาเทคนิคผ่อนคลายจากอินเทอร์เน็ต"""
+    return await call_mcp_tool("search_online_tips", {"query": query})
+
+
 # --------------------------------------------------
 # ทดสอบการเชื่อมต่อ: python models/mcp_client.py
 # --------------------------------------------------

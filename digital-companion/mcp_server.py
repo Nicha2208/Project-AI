@@ -10,8 +10,14 @@
 
 import json
 import random
+import os
+import httpx
 from datetime import datetime
 from mcp.server.fastmcp import FastMCP
+from dotenv import load_dotenv
+
+# โหลดค่าจากไฟล์ .env
+load_dotenv()
 
 # สร้าง MCP Server ชื่อ "bab-tools"
 mcp = FastMCP("bab-tools")
@@ -144,6 +150,47 @@ def log_mood(mood: str, note: str = "") -> dict:
         "message": f"บันทึกอารมณ์ '{mood}' เรียบร้อยแล้ว",
         "total_entries": len(logs)
     }
+
+
+# --------------------------------------------------
+# Tool 4: ค้นหาเทคนิคผ่อนคลายจากอินเทอร์เน็ตแบบ Real-time Tavily
+# --------------------------------------------------
+@mcp.tool()
+async def search_online_tips(query: str) -> dict:
+    """
+    ค้นหาข้อมูลเทคนิคการผ่อนคลายหรือวิธีจัดการอารมณ์จากอินเทอร์เน็ตแบบ Real-time
+    ใช้เมื่อต้องการข้อมูลใหม่ๆ หรือหัวข้อเฉพาะที่ไม่มีในระบบ
+
+    Args:
+        query: หัวข้อที่ต้องการค้นหา (เช่น "วิธีแก้เครียดจากการสอบ", "ท่าโยคะแก้ปวดหลัง")
+    """
+    api_key = os.getenv("TAVILY_API_KEY")
+    if not api_key:
+        return {"error": "กรุณาตั้งค่า TAVILY_API_KEY ในไฟล์ .env ก่อนใช้งาน"}
+
+    url = "https://api.tavily.com/search"
+    payload = {
+        "api_key": api_key,
+        "query": f"เทคนิคการผ่อนคลาย {query} (Please provide the summary and answer strictly in Thai language)",
+        "search_depth": "basic",
+        "include_answer": True,
+        "max_results": 3
+    }
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, json=payload, timeout=10.0)
+            response.raise_for_status()
+            data = response.json()
+            
+            # คืนค่าคำตอบที่สรุปมาแล้ว (Answer) หรือรายการผลลัพธ์
+            return {
+                "query": query,
+                "answer": data.get("answer", "ขออภัย ไม่พบคำตอบที่สรุปได้ชัดเจน"),
+                "sources": [res["url"] for res in data.get("results", [])]
+            }
+    except Exception as e:
+        return {"error": f"เกิดข้อผิดพลาดในการค้นหา: {str(e)}"}
 
 
 if __name__ == "__main__":
