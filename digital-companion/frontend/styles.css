@@ -125,12 +125,26 @@ header {
 .msg.mali .msg-avatar { background: linear-gradient(135deg, var(--teal-light), var(--sage)); }
 .msg.user .msg-avatar { background: linear-gradient(135deg, var(--peach), #e8937a); }
 
+.msg > div:not(.msg-avatar) {
+  max-width: 55%;
+  display: flex;
+  flex-direction: column;
+}
+.msg.user > div:not(.msg-avatar) {
+  align-items: flex-end;
+}
+.msg.bab > div:not(.msg-avatar), .msg.mali > div:not(.msg-avatar) {
+  align-items: flex-start;
+}
+
 .bubble {
-  max-width: 72%;
+  width: fit-content;
+  max-width: 100%;
+  min-width: 120px;
   padding: 13px 17px;
   border-radius: 18px;
   font-size: 15px; line-height: 1.65;
-  word-break: break-word;
+  word-break: break-word; /* ให้ตัดคำภาษาไทยได้เนียนขึ้น */
 }
 
 /* ฟองมะลิ: ขาว มีขอบ */
@@ -146,14 +160,8 @@ header {
   background: var(--teal);
   color: white;
   border-top-right-radius: 4px;
-   display: inline-block;
-   white-space: normal;
-   width: fit-content;
-   max-width: 80%;
-   word-break: break-word;
-   min-width: 120px;
-   word-break: keep-all;
-   white-space: normal;
+  display: inline-block;
+  min-width: 120px;
 }
 
 .bubble-time {
@@ -167,6 +175,7 @@ header {
 .typing-bubble {
   display: flex; gap: 5px;
   align-items: center;
+  flex-direction: row !important;
   padding: 14px 18px;
 }
 
