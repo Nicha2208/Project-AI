@@ -6,6 +6,7 @@ import os
 import re
 from models.rag_engine import get_rag_engine
 import random
+from models.mcp_client import log_mood, get_relaxation_tip
 
 router = APIRouter(prefix="/api", tags=["chat"])
 
@@ -178,7 +179,10 @@ class ChatResponse(BaseModel):
 @router.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
     try:
-        # 1. ตรวจสอบประโยคตอบรับ/เข้าใจ (Acknowledgment) ก่อนเลย เพื่อให้ได้คำตอบที่แน่นอน
+        # 1. บันทึกอารมณ์ User ผ่าน MCP Tool (บันทึกลงไฟล์ data/mood_log.json อัตโนมัติ)
+        await log_mood(mood="chat_interaction", note=request.message[:100])
+
+        # 2. ตรวจสอบประโยคตอบรับ/เข้าใจ (Acknowledgment) ก่อนเลย เพื่อให้ได้คำตอบที่แน่นอน
         ack_phrases = ["โอเคคับ", "โอเคค่ะ", "โอเค", "เคคับ", "เคค่ะ", "เข้าใจแล้ว", "เข้าใจคับ", "เข้าใจแล้วคับ"]
         thank_phrases = ["ขอบคุณนะ", "ขอบคุณ", "ขอบใจนะ", "ขอบใจมาก", "ขอบคุณที่รับฟัง", "ขอบใจ", "ซาบซึ้ง", "ซึ้งใจ"]
         msg_strip = request.message.strip().lower()
@@ -248,6 +252,11 @@ async def chat(request: ChatRequest):
             # ถ้า retry แล้วยังมีภาษาต่างประเทศอยู่ → ลบออกเลย (last resort)
             if has_non_thai(reply):
                 reply = clean_non_thai(reply)
+
+        # 3. เสริมการตอบโต้อย่างชาญฉลาดด้วย MCP: ถ้า User บ่นว่าเครียด ให้ดึง Tip มาต่อท้าย
+        if any(w in request.message.lower() for w in ["เครียด", "เหนื่อย", "ท้อ", "ไม่ไหว"]):
+            tip = await get_relaxation_tip("high")
+            reply += f"\n\n💡 BAB มีเคล็ดลับมาฝากนะคับ: {tip}"
 
         return ChatResponse(reply=reply)
 
